@@ -1,27 +1,4 @@
-const { ObjectId } = require('mongoose').Types;
 const { Thought, User } = require('../models');
-
-// Aggregate function to get the number of thoughts overall
-const thoughtCount = async () =>
-  Thought.aggregate()
-    .count('thoughtCount')
-    .then((numberOfThoughts) => numberOfThoughts);
-
-// Aggregate function for getting the overall grade using $avg
-const grade = async (thoughtId) =>
-  Thought.aggregate([
-    // only include the given thought by using $match
-    { $match: { _id: ObjectId(thoughtId) } },
-    {
-      $unwind: '$assignments',
-    },
-    {
-      $group: {
-        _id: ObjectId(thoughtId),
-        overallGrade: { $avg: '$assignments.score' },
-      },
-    },
-  ]);
 
 module.exports = {
   // Get all thoughts
@@ -29,9 +6,8 @@ module.exports = {
     Thought.find()
       .then(async (thoughts) => {
         const thoughtObj = {
-          thoughts,
-          thoughtCount: await thoughtCount(),
-        };
+          thoughts
+      };
         return res.json(thoughtObj);
       })
       .catch((err) => {
@@ -47,9 +23,8 @@ module.exports = {
         !thought
           ? res.status(404).json({ message: 'No thought with that ID' })
           : res.json({
-              thought,
-              grade: await grade(req.params.thoughtId),
-            })
+              thought
+        })
       )
       .catch((err) => {
         console.log(err);
@@ -86,14 +61,27 @@ module.exports = {
         res.status(500).json(err);
       });
   },
-
-  // Add an assignment to a thought
-  addAssignment(req, res) {
-    console.log('You are adding an assignment');
+  // Update a thought
+  updateThought(req, res) {
+      Thought.findOneAndUpdate(
+        { _id: req.params.thoughtId },
+        { $set: req.body },
+        { runValidators: true, new: true }
+      )
+        .then((thought) =>
+          !thought
+            ? res.status(404).json({ message: 'No thought with this id!' })
+            : res.json(thought)
+        )
+        .catch((err) => res.status(500).json(err));
+  },
+  // Add an reaction to a thought
+  addReaction(req, res) {
+    console.log('You are adding a reaction');
     console.log(req.body);
     Thought.findOneAndUpdate(
       { _id: req.params.thoughtId },
-      { $addToSet: { assignments: req.body } },
+      { $addToSet: { reactions: req.body } },
       { runValidators: true, new: true }
     )
       .then((thought) =>
@@ -105,11 +93,11 @@ module.exports = {
       )
       .catch((err) => res.status(500).json(err));
   },
-  // Remove assignment from a thought
-  removeAssignment(req, res) {
+  // Delete reaction from a thought
+  deleteReaction(req, res) {
     Thought.findOneAndUpdate(
       { _id: req.params.thoughtId },
-      { $pull: { assignment: { assignmentId: req.params.assignmentId } } },
+      { $pull: { reaction: { reactionId: req.params.reactionId } } },
       { runValidators: true, new: true }
     )
       .then((thought) =>
