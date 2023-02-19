@@ -52,4 +52,39 @@ module.exports = {
       )
       .catch((err) => res.status(500).json(err));
   },
+
+    // Add an friend to a student
+  addFriend(req, res) {
+    console.log('You are adding an friend');
+    console.log(req.body);
+    Student.findOneAndUpdate(
+      { _id: req.params.studentId },
+      { $addToSet: { friends: req.body } },
+      { runValidators: true, new: true }
+    )
+      .then((student) =>
+        !student
+          ? res
+              .status(404)
+              .json({ message: 'No student found with that ID :(' })
+          : res.json(student)
+      )
+      .catch((err) => res.status(500).json(err));
+  },
+  // Delete friend from a student
+  deleteFriend(req, res) {
+    Student.findOneAndUpdate(
+      { _id: req.params.studentId },
+      { $pull: { friend: { friendId: req.params.friendId } } },
+      { runValidators: true, new: true }
+    )
+      .then((student) =>
+        !student
+          ? res
+              .status(404)
+              .json({ message: 'No student found with that ID :(' })
+          : res.json(student)
+      )
+      .catch((err) => res.status(500).json(err));
+  },
 };
